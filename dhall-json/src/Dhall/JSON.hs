@@ -217,6 +217,7 @@ import Control.Applicative       (empty, (<|>))
 import Control.Exception         (Exception, throwIO)
 import Control.Monad             (guard)
 import Data.Aeson                (ToJSON (..), Value (..))
+import Data.Char                 (toLower)
 import Data.Maybe                (fromMaybe)
 import Data.Text                 (Text)
 import Data.Text.Prettyprint.Doc (Pretty)
@@ -498,7 +499,9 @@ dhallToJSON e0 = loop (Core.alphaNormalize (Core.normalize e0))
                 _ -> do
                     a' <- traverse (loop . Core.recordFieldValue) a
                     return (Aeson.toJSON (Dhall.Map.toMap a'))
-        Core.App (Core.Field (Core.Union _) _) b -> loop b
+        Core.App (Core.Field (Core.Union _) fs) b -> do
+            v <- loop b
+            pure $ Aeson.Object $ HashMap.fromList [(Data.Text.map toLower $ Core.fieldSelectionLabel fs, v)]
         Core.Field (Core.Union _) (FA k) -> return (Aeson.toJSON k)
         Core.Lam _ (Core.functionBindingAnnotation -> Core.Const Core.Type)
             (Core.Lam _ (Core.functionBindingAnnotation ->
